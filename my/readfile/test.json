@@ -1,0 +1,9 @@
+{
+  "name": "中国",
+  "age": 18,
+  "from": {
+    "city":"china",
+    "number": 23,
+    "like": ["girl","bat","super","99"]
+  }
+}

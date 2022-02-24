@@ -1,0 +1,63 @@
+1. 如何修改一个字符串中的一个字符
+    str := "hello"
+    c:=[]byte(str)
+    c[0] = "c"
+    s2 := string(c)
+2. 如何获得字串
+   substr :=str[n:m]
+3. 历遍一个字符串
+   for i := 0;i<len(str);i++{
+   ... = str[i]
+   }
+   for ix,ch := range str{
+   ...
+   }
+4.如何获取字符串的字节数：len(str)
+  如何获取一个字符串的字符数：utf8.RuneCountInString(str) 最快
+  len([]int(str))
+5.如何连接字符串
+  s1 := "aaa"
+  s2 := "bbb"
+  var s3 bytes.Buffer
+  s3.WriteString(s1)
+  s3.WriteString(s2)
+  s4 := s2.String()
+
+  String.Join()
+
+  str1 += str2
+
+6. 如何打开一个文件并读取
+    file, err := os.Open("input.dat")
+    if err != nil {
+        fmt.Printf("An error \n" +
+        "Dosse   \n" +
+        "asd ")
+        return
+    }
+    defer file.Close(0)
+    iReader := bufio.NewReader(file)
+    for {
+    str,err :=
+    }
+
+7. 如何通过切片读写文件
+   func cat(f *file.File) {
+   const NBUF = 512
+   var buf [NBUF]byte
+   for {
+       switch nr,er := f.Read(buf[:]); true {
+       case nr < 0 :
+            fmt.Fprintf(os.Stderr,"cat : error reading from %s: %s \n",
+            f.String(),er.String())
+             os.Exit(1)
+       case nr == 0:
+            return
+       case nr > 0 :
+            if nw,er := file.Stdout.Write(buf[0:nr]);nw !=nr {
+            fmt.Fprintf(os.Stderr,"cat : error writing from %s :%s \n",
+                f.String(),ew.String())
+            }
+       }
+   }
+   }
