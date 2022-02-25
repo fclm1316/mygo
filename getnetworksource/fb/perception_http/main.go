@@ -2,40 +2,38 @@ package main
 
 import (
 	"bytes"
-	"time"
-
-	//"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"github.com/google/gopacket"
-	"github.com/google/gopacket/layers"
-	"github.com/google/gopacket/pcap"
-	//"io/ioutil"
+	"io/ioutil"
 	"log"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
-	//"time"
+	"time"
+
+	"github.com/google/gopacket"
+	"github.com/google/gopacket/layers"
+	"github.com/google/gopacket/pcap"
 )
 
 type RequestData struct {
-	Ack       bool
-	Fin       bool
-	Syn       bool
-	Th_dport  uint16
-	Th_sport  uint16
-	Lens      uint16
-	Seq       uint32
-	Ack_seq   uint32
-	Timestamp int64
-	Ip_dst    string
-	Ip_src    string
-	Mac_dst   string
-	Mac_src   string
-	Body      string
+	Ack       bool   `json:"ack"`
+	Fin       bool   `json:"fin"`
+	Syn       bool   `json:"syn"`
+	Th_dport  uint16 `json:"th_dport"`
+	Th_sport  uint16 `json:"th_sport"`
+	Lens      uint16 `json:"lens"`
+	Seq       uint32 `json:"seq"`
+	Ack_seq   uint32 `json:"ack_seq"`
+	Timestamp int64  `json:"timestamp"`
+	Ip_dst    string `json:"ip_dst"`
+	Ip_src    string `json:"ip_src"`
+	Mac_dst   string `json:"mac_dst"`
+	Mac_src   string `json:"mac_src"`
+	Body      string `json:"body"`
 }
 
 var (
@@ -43,11 +41,15 @@ var (
 	err    error
 	Client http.Client
 )
+var DataChan = make(chan []byte, 1000)
+
+const version = "0.0.5"
 
 func usage() {
 	fmt.Printf("Usage of %s -i=\"eth0\" -f=\"tcp and port 8080\" -u=\"http://127.0.0.1/api\"\n", os.Args[0])
 	fmt.Println("Options :")
 	flag.PrintDefaults()
+	fmt.Println("Version : ", version)
 }
 
 var url = flag.String("u", "http://127.0.0.1:12306/api", "send data to server api")
@@ -60,10 +62,12 @@ func main() {
 	flag.Usage = usage
 	flag.Parse()
 	log.Println("开始运行")
+
+	log.Println("debug : ", *debug)
 	t := http.DefaultTransport.(*http.Transport).Clone()
-	t.MaxIdleConns = 100
-	t.MaxConnsPerHost = 100
-	t.MaxIdleConnsPerHost = 100
+	t.MaxIdleConns = 30
+	t.MaxConnsPerHost = 30
+	t.MaxIdleConnsPerHost = 30
 	Client = http.Client{
 		Timeout:   10 * time.Second,
 		Transport: t,
@@ -74,6 +78,8 @@ func main() {
 		}()
 	}
 	go OpenDevice()
+	go sendRequest()
+
 	c := make(chan os.Signal)
 	signal.Notify(c, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM,
 		syscall.SIGQUIT)
@@ -83,6 +89,7 @@ func main() {
 			case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
 				log.Println("close handle")
 				defer handle.Close()
+				defer close(DataChan)
 				log.Println("exiting.....")
 				os.Exit(0)
 			default:
@@ -179,7 +186,8 @@ func analyzePacketInfo(packet gopacket.Packet) {
 		if err != nil {
 			log.Println(err)
 		}
-		go sendRequest(data)
+		// go sendRequest(data)
+		DataChan <- data
 	}
 }
 
@@ -203,15 +211,40 @@ func NewRequestData(ack bool, fin bool, syn bool, th_dport uint16, th_sport uint
 	}
 }
 
-func sendRequest(data []byte) {
-	//log.Println(string(data))
+func sendRequest() {
+	// 发送数据
+	for {
+		select {
+		case data := <-DataChan:
+			go func(d []byte) {
+				request, err := Client.Post(*url, "application/json", bytes.NewBuffer(data))
+				if err != nil {
+					log.Println(err)
+					break
+				}
+				if *debug {
+					log.Printf(string(data))
+					body, _ := ioutil.ReadAll(request.Body)
+					log.Println(string(data))
+				}
+				request.Body.Close()
+			}(data)
 
-	request, err := Client.Post(*url, "application/json", bytes.NewReader(data))
-	if err != nil {
-		log.Println(err)
-		return
+		default:
+			time.Sleep(1e9)
+		}
 	}
-	defer request.Body.Close()
-	//body,_ := ioutil.ReadAll(request.Body)
-	//log.Println(string(body))
 }
+
+// func sendRequest(data []byte) {
+// 	//log.Println(string(data))
+
+// 	request, err := Client.Post(*url, "application/json", bytes.NewReader(data))
+// 	if err != nil {
+// 		log.Println(err)
+// 		return
+// 	}
+// 	defer request.Body.Close()
+// 	//body,_ := ioutil.ReadAll(request.Body)
+// 	//log.Println(string(body))
+// }
