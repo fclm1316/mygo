@@ -41,9 +41,10 @@ var (
 	err    error
 	Client http.Client
 )
-var DataChan = make(chan []byte, 1000)
+var DataChan = make(chan []byte, 30)
+var PacaetChan = make(chan interface{}, 30)
 
-const version = "0.0.5"
+const version = "0.0.6"
 
 func usage() {
 	fmt.Printf("Usage of %s -i=\"eth0\" -f=\"tcp and port 8080\" -u=\"http://127.0.0.1/api\"\n", os.Args[0])
@@ -77,25 +78,29 @@ func main() {
 			http.ListenAndServe("0.0.0.0:2345", nil)
 		}()
 	}
-	go OpenDevice()
-	go sendRequest()
+	defer handle.Close()
+	defer close(DataChan)
+	defer close(PacaetChan)
 
-	c := make(chan os.Signal)
-	signal.Notify(c, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM,
-		syscall.SIGQUIT)
-	func() {
-		for s := range c {
-			switch s {
-			case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
-				log.Println("close handle")
-				defer handle.Close()
-				defer close(DataChan)
-				log.Println("exiting.....")
-				os.Exit(0)
-			default:
-			}
-		}
-	}()
+	go sendRequest()
+	go analyzePacketInfo()
+	OpenDevice()
+	// c := make(chan os.Signal)
+	// signal.Notify(c, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM,
+	// 	syscall.SIGQUIT)
+	// func() {
+	// 	for s := range c {
+	// 		switch s {
+	// 		case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT:
+	// 			log.Println("close handle")
+	// 			defer handle.Close()
+	// 			defer close(DataChan)
+	// 			log.Println("exiting.....")
+	// 			os.Exit(0)
+	// 		default:
+	// 		}
+	// 	}
+	// }()
 }
 
 func OpenDevice() {
@@ -124,7 +129,8 @@ func OpenDevice() {
 			log.Println("Unusable packet")
 			continue
 		}
-		go analyzePacketInfo(packet)
+		// go analyzePacketInfo(packet)
+		PacaetChan <- packet
 	}
 }
 func stopSelf(handle *pcap.Handle) {
@@ -146,48 +152,58 @@ func stopSelf(handle *pcap.Handle) {
 }
 
 func analyzePacketInfo(packet gopacket.Packet) {
-	var ipv4 *layers.IPv4
-	var tcp *layers.TCP
-	var eth *layers.Ethernet
-	var payload []byte
-	packettime := packet.Metadata().Timestamp
-	//ethernetLayer := packet.Layer(layers.LayerTypeEthernet)
-	//if ethernetLayer != nil {
-	//    eth, _ = ethernetLayer.(*layers.Ethernet)
-	//}
-	//tcpLayer := packet.Layer(layers.LayerTypeTCP)
-	//// tcp
-	//if tcpLayer != nil {
-	//    tcp, _ = tcpLayer.(*layers.TCP)
-	//}
-	//ipLayer := packet.Layer(layers.LayerTypeIPv4)
-	//// IPv4
-	//if ipLayer != nil {
-	//    ipv4, _ = ipLayer.(*layers.IPv4)
-	//}
-	applicationLayer := packet.ApplicationLayer()
-	// 应用层
-	if applicationLayer != nil {
-		payload = applicationLayer.Payload()
+	for {
+		select {
+		case packet := PacaetChan:
+			go func() {
+				var ipv4 *layers.IPv4
+				var tcp *layers.TCP
+				var eth *layers.Ethernet
+				var payload []byte
+				// 空接口转普通接口 type interface{} is interface with no methods
+				packettime := packet.(gopacket.Packet).Metadata().Timestamp
+				//ethernetLayer := packet.Layer(layers.LayerTypeEthernet)
+				//if ethernetLayer != nil {
+				//    eth, _ = ethernetLayer.(*layers.Ethernet)
+				//}
+				//tcpLayer := packet.Layer(layers.LayerTypeTCP)
+				//// tcp
+				//if tcpLayer != nil {
+				//    tcp, _ = tcpLayer.(*layers.TCP)
+				//}
+				//ipLayer := packet.Layer(layers.LayerTypeIPv4)
+				//// IPv4
+				//if ipLayer != nil {
+				//    ipv4, _ = ipLayer.(*layers.IPv4)
+				//}
+				applicationLayer := packet.(gopacket.Packet).ApplicationLayer()
+				// 应用层
+				if applicationLayer != nil {
+					payload = applicationLayer.Payload()
 
-		ethernetLayer := packet.Layer(layers.LayerTypeEthernet)
-		eth, _ = ethernetLayer.(*layers.Ethernet)
+					ethernetLayer := packet.(gopacket.Packet).Layer(layers.LayerTypeEthernet)
+					eth, _ = ethernetLayer.(*layers.Ethernet)
 
-		tcpLayer := packet.Layer(layers.LayerTypeTCP)
-		tcp, _ = tcpLayer.(*layers.TCP)
+					tcpLayer := packet.(gopacket.Packet).Layer(layers.LayerTypeTCP)
+					tcp, _ = tcpLayer.(*layers.TCP)
 
-		ipLayer := packet.Layer(layers.LayerTypeIPv4)
-		ipv4, _ = ipLayer.(*layers.IPv4)
+					ipLayer := packet.(gopacket.Packet).Layer(layers.LayerTypeIPv4)
+					ipv4, _ = ipLayer.(*layers.IPv4)
 
-		ReqData := NewRequestData(tcp.ACK, tcp.FIN, tcp.SYN, uint16(tcp.DstPort), uint16(tcp.SrcPort), ipv4.Length, tcp.Seq,
-			tcp.Ack, packettime.UnixNano(), ipv4.DstIP.String(), ipv4.SrcIP.String(), eth.DstMAC.String(), eth.SrcMAC.String(), string(payload))
+					ReqData := NewRequestData(tcp.ACK, tcp.FIN, tcp.SYN, uint16(tcp.DstPort), uint16(tcp.SrcPort), ipv4.Length, tcp.Seq,
+						tcp.Ack, packettime.UnixNano(), ipv4.DstIP.String(), ipv4.SrcIP.String(), eth.DstMAC.String(), eth.SrcMAC.String(), string(payload))
 
-		data, err := json.Marshal(ReqData)
-		if err != nil {
-			log.Println(err)
+					data, err := json.Marshal(ReqData)
+					if err != nil {
+						log.Println(err)
+					}
+					// go sendRequest(data)
+					DataChan <- data
+				}
+			}()
+		default:
+			time.Sleep(1e9)
 		}
-		// go sendRequest(data)
-		DataChan <- data
 	}
 }
 
