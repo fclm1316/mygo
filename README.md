@@ -5,14 +5,16 @@ getnetworksource
     网卡流量并分析.....
     
     
+    getpacket 
+    		抓取服务端的包
     perception_http
     		从网卡中获得tcp包，组装后发给服务端
-			需要该成发送kafka中
+			需要改成发送kafka中
     	    
 
 英语背单词
 
-    english
+    english orm、洗牌算法
         欢迎来到背单词系统
         1 单元单词
         2 章节单词
@@ -30,7 +32,7 @@ getnetworksource
     myojb
         centipede  模仿py脚本，类ansible
         pgsql   压力工具
-        scanport 扫面21端口工具
+        scanport 扫描21端口工具
         tidb 连接数据tidb
         tools 工具
         yq  爬虫提交表单
