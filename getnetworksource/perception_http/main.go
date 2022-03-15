@@ -17,6 +17,8 @@ import (
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
+	"golang.org/x/net/html/charset"
+	"golang.org/x/text/encoding/simplifiedchinese"
 )
 
 type RequestData struct {
@@ -36,6 +38,10 @@ type RequestData struct {
 	Body      string `json:"body"`
 }
 
+var heartbeat struct {
+	period time.Duration
+}
+
 var (
 	handle *pcap.Handle
 	err    error
@@ -44,26 +50,33 @@ var (
 var DataChan = make(chan []byte, 30)
 var PacaetChan = make(chan interface{}, 30)
 
-const version = "0.0.6"
+const (
+	version         = "0.0.6"
+	reciveTcpPacket = "api/reciveTcpPacket"
+	register        = "api/register"
+)
 
 func usage() {
-	fmt.Printf("Usage of %s -i=\"eth0\" -f=\"tcp and port 8080\" -u=\"http://127.0.0.1/api\"\n", os.Args[0])
+	fmt.Printf("Usage of %s -i=\"eth0\" -f=\"tcp and port 8080\" -s=\"127.0.0.1:8080\"\n", os.Args[0])
 	fmt.Println("Options :")
 	flag.PrintDefaults()
 	fmt.Println("Version : ", version)
 }
 
-var url = flag.String("u", "http://127.0.0.1:12306/api", "send data to server api")
+var serverip = flag.String("s", "127.0.0.1:12306", "send data to server api")
 var iface = flag.String("i", "eth0", "Interface to get packets from")
 var filter = flag.String("f", "tcp and port 8080", "BPF filter for pcap,usage: tcp and port 8080 or tcp ")
-var snapshot_len = flag.Int64("s", 1024, "SnapLen for pcap packet capture,max 65535")
+var snapshot_len = flag.Int64("l", 1024, "SnapLen for pcap packet capture,max 65535")
 var debug = flag.Bool("debug", false, "debug flag, http://ip:2345/debug/pprof/")
+var name = flag.String("n", "default", "application name")
+var env = flag.String("e", "FAT", "env: DEV,FAT,UAT,LPT,PRO")
 
 func main() {
 	flag.Usage = usage
 	flag.Parse()
 	log.Println("开始运行")
-
+	var urlRT = fmt.Sprintf("http://%s/%s", *serverip, reciveTcpPacket)
+	var urlRG = fmt.Sprintf("http://%s/%s", *serverip, register)
 	log.Println("debug : ", *debug)
 	t := http.DefaultTransport.(*http.Transport).Clone()
 	t.MaxIdleConns = 30
@@ -84,6 +97,7 @@ func main() {
 
 	go sendRequest()
 	go analyzePacketInfo()
+	go heartbeatNew(time.Minute).Start(urlRG)
 	OpenDevice()
 	// c := make(chan os.Signal)
 	// signal.Notify(c, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM,
@@ -103,6 +117,30 @@ func main() {
 	// }()
 }
 
+func heartbeatNew(t time.Duration) *heartbeat {
+	return &heartbeat{
+		period: t,
+	}
+}
+
+// 增加心跳
+func (beat *heartbeat) Start(url string) *heartbeat {
+	ticker := time.Ticker(beat.period)
+	req, _ := http.NewRequest(http.MethodGet, url, nil)
+	q := req.URL.Query()
+	q.Add("appName", *name)
+	q.Add("env", *env)
+	req.URL.RawQuery = q.Encode()
+	for range ticker.C {
+		res, err := Client.Do(req)
+		if err != nil {
+			log.Println(err)
+			continue
+		}
+		res.Body.Close()
+	}
+	return nil
+}
 func OpenDevice() {
 	if *snapshot_len > 65535 || *snapshot_len < 0 {
 		log.Println("Check snapshot_len")
@@ -151,6 +189,16 @@ func stopSelf(handle *pcap.Handle) {
 	}()
 }
 
+// 编码转换
+func covCharset(b []byte) []beat {
+	_, name, _ := charset.DetermineEncoding(b, "text/html")
+	if name != "utf-8" {
+		decodeByte, _ := simplifiedchinese.GB18030.NewDecoder().Bytes(b)
+		return decodeByte
+	}
+	return b
+}
+
 func analyzePacketInfo(packet gopacket.Packet) {
 	for {
 		select {
@@ -179,7 +227,7 @@ func analyzePacketInfo(packet gopacket.Packet) {
 				applicationLayer := packet.(gopacket.Packet).ApplicationLayer()
 				// 应用层
 				if applicationLayer != nil {
-					payload = applicationLayer.Payload()
+					payload = covCharset(applicationLayer.Payload())
 
 					ethernetLayer := packet.(gopacket.Packet).Layer(layers.LayerTypeEthernet)
 					eth, _ = ethernetLayer.(*layers.Ethernet)
@@ -233,7 +281,7 @@ func sendRequest() {
 		select {
 		case data := <-DataChan:
 			go func(d []byte) {
-				request, err := Client.Post(*url, "application/json", bytes.NewBuffer(data))
+				request, err := Client.Post(*url, "application/json,charset=UTF-8", bytes.NewBuffer(data))
 				if err != nil {
 					log.Println(err)
 					break
