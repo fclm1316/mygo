@@ -2,15 +2,19 @@ package main
 
 import (
 	"bytes"
+	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -21,20 +25,16 @@ import (
 	"golang.org/x/text/encoding/simplifiedchinese"
 )
 
-type RequestData struct {
-	Ack       bool   `json:"ack"`
-	Fin       bool   `json:"fin"`
-	Syn       bool   `json:"syn"`
+type PackageInfo struct {
+	Direction bool   `json:"dirction"`
 	Th_dport  uint16 `json:"th_dport"`
 	Th_sport  uint16 `json:"th_sport"`
-	Lens      uint16 `json:"lens"`
-	Seq       uint32 `json:"seq"`
-	Ack_seq   uint32 `json:"ack_seq"`
+	Seq_num   uint32 `json:"seq"`
+	Ack_num   uint32 `json:"ack_seq"`
 	Timestamp int64  `json:"timestamp"`
-	Ip_dst    string `json:"ip_dst"`
-	Ip_src    string `json:"ip_src"`
-	Mac_dst   string `json:"mac_dst"`
-	Mac_src   string `json:"mac_src"`
+	Ip_dst    net.IP `json:"ip_dst"`
+	Ip_src    net.IP `json:"ip_src"`
+	UUID      []byte `json:"uuid"`
 	Body      string `json:"body"`
 }
 
@@ -43,15 +43,16 @@ var heartbeat struct {
 }
 
 var (
-	handle *pcap.Handle
-	err    error
-	Client http.Client
+	handle  *pcap.Handle
+	err     error
+	Client  http.Client
+	LocalIP string
 )
 var DataChan = make(chan []byte, 30)
 var PacaetChan = make(chan interface{}, 30)
 
 const (
-	version         = "0.0.6"
+	version         = "0.1.0"
 	reciveTcpPacket = "api/reciveTcpPacket"
 	register        = "api/register"
 )
@@ -91,6 +92,7 @@ func main() {
 			http.ListenAndServe("0.0.0.0:2345", nil)
 		}()
 	}
+	GetLocalIP()
 	defer handle.Close()
 	defer close(DataChan)
 	defer close(PacaetChan)
@@ -141,6 +143,19 @@ func (beat *heartbeat) Start(url string) *heartbeat {
 	}
 	return nil
 }
+
+func GetLocalIP() {
+	interf, err := net.InterfaceByName(*iface)
+	if err != nil {
+		log.Fatal(err)
+	}
+	addr, err := interf.Addrs()
+	if err != nil {
+		log.Fatal(err)
+	}
+	LocalIP = addr[0].String()
+}
+
 func OpenDevice() {
 	if *snapshot_len > 65535 || *snapshot_len < 0 {
 		log.Println("Check snapshot_len")
@@ -229,8 +244,8 @@ func analyzePacketInfo(packet gopacket.Packet) {
 				if applicationLayer != nil {
 					payload = covCharset(applicationLayer.Payload())
 
-					ethernetLayer := packet.(gopacket.Packet).Layer(layers.LayerTypeEthernet)
-					eth, _ = ethernetLayer.(*layers.Ethernet)
+					// ethernetLayer := packet.(gopacket.Packet).Layer(layers.LayerTypeEthernet)
+					// eth, _ = ethernetLayer.(*layers.Ethernet)
 
 					tcpLayer := packet.(gopacket.Packet).Layer(layers.LayerTypeTCP)
 					tcp, _ = tcpLayer.(*layers.TCP)
@@ -238,8 +253,8 @@ func analyzePacketInfo(packet gopacket.Packet) {
 					ipLayer := packet.(gopacket.Packet).Layer(layers.LayerTypeIPv4)
 					ipv4, _ = ipLayer.(*layers.IPv4)
 
-					ReqData := NewRequestData(tcp.ACK, tcp.FIN, tcp.SYN, uint16(tcp.DstPort), uint16(tcp.SrcPort), ipv4.Length, tcp.Seq,
-						tcp.Ack, packettime.UnixNano(), ipv4.DstIP.String(), ipv4.SrcIP.String(), eth.DstMAC.String(), eth.SrcMAC.String(), string(payload))
+					ReqData := NewPackageInfo(uint16(tcp.DstPort), uint16(tcp.SrcPort), tcp.Seq,
+						tcp.Ack, packettime.UnixNano(), ipv4.DstIP, ipv4.SrcIP, string(payload))
 
 					data, err := json.Marshal(ReqData)
 					if err != nil {
@@ -255,22 +270,53 @@ func analyzePacketInfo(packet gopacket.Packet) {
 	}
 }
 
-func NewRequestData(ack bool, fin bool, syn bool, th_dport uint16, th_sport uint16, lens uint16, seq uint32,
-	ack_seq uint32, timestamp int64, ip_dst string, ip_src string, mac_dst string, mac_src string, body string) *RequestData {
-	return &RequestData{
-		Ack:       ack,
-		Fin:       fin,
-		Syn:       syn,
+func ip2int(ip net.IP) uint32 {
+	if len(ip) == 0 {
+		return 0
+	}
+	if len(ip) == 16 {
+		return binary.BigEndian.Uint32(ip)
+	}
+	return binary.BigEndian.Uint32(ip)
+}
+
+func NewPackageInfo(th_dport uint16, th_sport uint16, seq_num uint32,
+	ack_num uint32, timestamp int64, ip_dst net.IP, ip_src net.IP, body string) *PackageInfo {
+	var flag bool
+	if strings.HasPrefix(LocalIP, ip_src.String()) {
+		flag = true
+	}
+	var streamID uint64
+	if flag {
+		streamID = uint64(th_dport)<<48 | uint64(th_sport)<<32 |
+			uint64(ip2int(ip_dst))
+	} else {
+		streamID = uint64(th_sport)<<48 | uint64(th_dport)<<32 |
+			uint64(ip2int(ip_src))
+	}
+
+	id := make([]byte, 12)
+	binary.BigEndian.PutUint64(id, streamID)
+	if flag {
+		binary.BigEndian.PutUint32(id[8:], seq_num)
+	} else {
+		binary.BigEndian.PutUint32(id[8:], ack_num)
+
+	}
+
+	uuidHex := make([]byte, 24)
+	hex.Encode(uuidHex[:], id[:])
+
+	return &PackageInfo{
+		Direction: flag,
+		UUID:      uuidHex,
 		Th_dport:  th_dport,
 		Th_sport:  th_sport,
-		Lens:      lens,
-		Seq:       seq,
-		Ack_seq:   ack_seq,
+		Seq_num:   seq_num,
+		Ack_num:   ack_num,
 		Timestamp: timestamp,
 		Ip_dst:    ip_dst,
 		Ip_src:    ip_src,
-		Mac_dst:   mac_dst,
-		Mac_src:   mac_src,
 		Body:      body,
 	}
 }
