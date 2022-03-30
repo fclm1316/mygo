@@ -280,6 +280,7 @@ func ip2int(ip net.IP) uint32 {
 	return binary.BigEndian.Uint32(ip)
 }
 
+// 增加uuid,简化数据
 func NewPackageInfo(th_dport uint16, th_sport uint16, seq_num uint32,
 	ack_num uint32, timestamp int64, ip_dst net.IP, ip_src net.IP, body string) *PackageInfo {
 	var flag bool
