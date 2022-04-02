@@ -5,9 +5,13 @@ getnetworksource
     网卡流量并分析.....
     
     
+    rebuildtcp 服务端
+    		接受perception_http请求数据
+    
+    
     getpacket 
     		抓取服务端的包
-    perception_http
+    perception_http  客户端
     		从网卡中获得tcp包，组装后发给服务端，参考gor，增加uuid提高重组率
 			需要改成发送kafka中
     	    
