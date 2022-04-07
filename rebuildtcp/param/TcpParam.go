@@ -1,6 +1,7 @@
 package param
 
 type RequestTcp struct {
+	Id        int64  `json:"id"`
 	Uuid      string `json:"uuid"`
 	Th_dport  int    `json:"th_dport"`
 	Th_sport  int    `json:"th_sport"`

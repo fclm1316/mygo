@@ -26,3 +26,7 @@ func main() {
 	registerRouter(app)
 	app.Run(cfg.AppInfo.AppHost + ":" + cfg.AppInfo.AppPort)
 }
+
+func registerRouter(router *gin.Engine) {
+	new(controller.TcpController).Router(router)
+}
