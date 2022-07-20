@@ -4,7 +4,7 @@ import "fmt"
 
 type Unknowwords struct {
 	Id     int `gorm:type:Auto_Increment,not null`
-	Unknow int `gorm:size:4`
+	Unknow int `gorm:size:4 json:"unknow"`
 }
 
 func CreateUnKnowWords(unknow int) {

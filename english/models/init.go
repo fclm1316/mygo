@@ -1,13 +1,18 @@
 package models
 
 import (
-	"fmt"
-	"gorm.io/gorm/logger"
+	// "fmt"
 	"log"
+
+	// "gorm.io/gorm/logger"
+
 	//"github.com/spf13/viper"
-	"gorm.io/driver/mysql"
+	// "gorm.io/driver/mysql"
+
+	_ "github.com/mattn/go-sqlite3"
+	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
+	// "gorm.io/gorm/schema"
 )
 
 var db *gorm.DB
@@ -26,38 +31,45 @@ func InitDB() {
 	//mysqlHost := viper.Get("mysql.ip")
 	//mysqlPort := viper.Get("mysql.port")
 	//mysqlDb := viper.Get("mysql.dbname")
-	const (
-		mysqlUser     = "root"
-		mysqlPassword = "root123"
-		mysqlHost     = "127.0.0.1"
-		mysqlPort     = 3306
-		mysqlDb       = "myenglish"
-	)
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		mysqlUser, mysqlPassword, mysqlHost, mysqlPort, mysqlDb)
-	var err error
-	db, err = gorm.Open(mysql.New(mysql.Config{
-		DSN:                       dsn,
-		DefaultStringSize:         256,
-		DisableDatetimePrecision:  true,
-		DontSupportRenameColumn:   true,
-		DontSupportRenameIndex:    true,
-		SkipInitializeWithVersion: false,
-	}), &gorm.Config{NamingStrategy: schema.NamingStrategy{
-		SingularTable: true,
-	},
-		Logger: logger.Default.LogMode(logger.Error),
-	})
 
+	// const (
+	// 	mysqlUser     = "root"
+	// 	mysqlPassword = "root123"
+	// 	mysqlHost     = "127.0.0.1"
+	// 	mysqlPort     = 3306
+	// 	mysqlDb       = "myenglish"
+	// )
+	// dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+	// 	mysqlUser, mysqlPassword, mysqlHost, mysqlPort, mysqlDb)
+	// var err error
+	// db, err = gorm.Open(mysql.New(mysql.Config{
+	// 	DSN:                       dsn,
+	// 	DefaultStringSize:         256,
+	// 	DisableDatetimePrecision:  true,
+	// 	DontSupportRenameColumn:   true,
+	// 	DontSupportRenameIndex:    true,
+	// 	SkipInitializeWithVersion: false,
+	// }), &gorm.Config{NamingStrategy: schema.NamingStrategy{
+	// 	SingularTable: true,
+	// },
+	// 	Logger: logger.Default.LogMode(logger.Error),
+	// })
+
+	// if err != nil {
+	// 	log.Printf("%s 数据库连接失败\n", mysqlHost)
+	// 	log.Fatal(err)
+	// }
+	// sqlDB, _ := db.DB()
+	// sqlDB.SetMaxIdleConns(10)
+	// sqlDB.SetMaxOpenConns(20)
+	// //return nil
+
+	var err error
+	db, err = gorm.Open(sqlite.Open("e.db"), &gorm.Config{})
 	if err != nil {
-		log.Printf("%s 数据库连接失败\n", mysqlHost)
+		log.Printf("数据库连接失败\n")
 		log.Fatal(err)
 	}
-	sqlDB, _ := db.DB()
-	sqlDB.SetMaxIdleConns(10)
-	sqlDB.SetMaxOpenConns(20)
-	//return nil
-
 }
 
 func DbClose() {

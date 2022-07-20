@@ -6,11 +6,11 @@ import (
 )
 
 type Englishwords struct {
-	Id      int `gorm:type:Auto_Increment,not null`
-	Words   string
-	Chapter int
-	Unit    int
-	Count   int
+	Id      int    `gorm:type:Auto_Increment,not null`
+	Words   string `json:"words"`
+	Chapter int    `json:"chapter"`
+	Unit    int    `json:"unit"`
+	TSL     string `json:"tsl"`
 }
 
 // 数据库中获得所有

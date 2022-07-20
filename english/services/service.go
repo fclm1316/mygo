@@ -51,13 +51,15 @@ func showMenu() {
 func SelectAllWords() {
 	words, _ := models.GetAllWords()
 	var inputStr string
+
 	sumWords := len(words)
 	nextWords := 0
 	for i := 0; i < sumWords; i++ {
 	gotoHere:
 		fmt.Println("")
 		fmt.Printf("n:下一个, p:跳过, q:返回, 比例: %d/%d %.2f%% \n", i+1, sumWords, float64(nextWords)/float64(sumWords)*100)
-		fmt.Println(words[i].Words)
+		fmt.Printf("%d : %s \n", words[i].Id, words[i].Words)
+
 		fmt.Scanf("%s\n", &inputStr)
 		//fmt.Printf("用户输入的是： %d \n", inputStr)
 		switch inputStr {
@@ -68,6 +70,7 @@ func SelectAllWords() {
 			go models.CreateUnKnowWords(words[i].Id)
 		case "q", "Q":
 			StartApp()
+
 		default:
 			goto gotoHere
 		}
@@ -89,14 +92,20 @@ func SelectForgot() {
 		StartApp()
 	}
 	var inputStr string
+	var tsl = false
 	sumWords := len(words)
 	nextWords := 0
 	for i := 0; i < sumWords; i++ {
 	gotoHere:
 		fmt.Println("")
-		fmt.Printf("n:下一个, p:跳过, q:返回, 比例: %d/%d %.2f%% \n", i+1, sumWords, float64(nextWords)/float64(sumWords)*100)
-		fmt.Println(words[i].Words)
+		fmt.Printf("n:下一个, p:跳过, q:返回, t:提示, 比例: %d/%d %.2f%% \n", i+1, sumWords, float64(nextWords)/float64(sumWords)*100)
+		fmt.Printf("%d : %s \n", words[i].Id, words[i].Words)
+		if tsl == true {
+			fmt.Println(words[i].TSL)
+			tsl = false
+		}
 		fmt.Scanf("%s\n", &inputStr)
+
 		//fmt.Printf("用户输入的是： %s \n", inputStr)
 		switch inputStr {
 		case "n", "N":
@@ -107,6 +116,9 @@ func SelectForgot() {
 			continue
 		case "q", "Q":
 			StartApp()
+		case "t", "T":
+			tsl = true
+			goto gotoHere
 		default:
 			goto gotoHere
 		}
@@ -126,11 +138,13 @@ func SelectGetWords(number int, querynumber int) {
 	sumWords := len(words)
 	nextWords := 0
 	var inputStr string
+
 	for i := 0; i < sumWords; i++ {
 	gotoHere:
 		fmt.Println("")
 		fmt.Printf("n:下一个, p:跳过, q:返回, 比例: %d/%d %.2f%% \n", i+1, sumWords, float64(nextWords)/float64(sumWords)*100)
-		fmt.Println(words[i].Words)
+		fmt.Printf("%d : %s \n", words[i].Id, words[i].Words)
+
 		fmt.Scanf("%s\n", &inputStr)
 		//fmt.Printf("用户输入的是： %s \n", inputStr)
 		switch inputStr {
@@ -141,6 +155,7 @@ func SelectGetWords(number int, querynumber int) {
 			go models.CreateUnKnowWords(words[i].Id)
 		case "q", "Q":
 			StartApp()
+
 		default:
 			goto gotoHere
 		}
