@@ -1,0 +1,88 @@
+package service
+
+import (
+	"allinone/dao"
+	"allinone/model"
+	"allinone/param"
+
+	// "allinone/po"
+	"allinone/tool"
+	"fmt"
+	"strconv"
+)
+
+type SysInfo struct {
+}
+
+func (sv *SysInfo) GetInfo(GetSysInfoParam *param.SysInfoGetParam) ([]byte, error) {
+
+	var result []byte
+	var err error
+	var id, env int
+	stdao := dao.SysInfoDao{tool.DbEngine}
+
+	// page, size, err = tool.PageSize(GetSysInfoParam.Page, GetSysInfoParam.Size)
+	// if err != nil {
+	// 	return result, err
+	// }
+
+	if GetSysInfoParam.EnvId == "none" && GetSysInfoParam.Ip == "none" &&
+		GetSysInfoParam.NameId == "none" && GetSysInfoParam.Id == "none" {
+		if result, err = stdao.SelectAll(GetSysInfoParam.PS.Page, GetSysInfoParam.PS.Offset); err != nil {
+			return result, err
+		}
+
+	} else {
+		var temp = make(map[string]interface{})
+		if GetSysInfoParam.Id != "none" {
+			id, err = strconv.Atoi(GetSysInfoParam.Id)
+			if err != nil {
+				return result, err
+			}
+			temp["sys_ip.id"] = id
+		}
+		if GetSysInfoParam.EnvId != "none" {
+			env, err = strconv.Atoi(GetSysInfoParam.EnvId)
+			if err != nil {
+				return result, err
+			}
+			temp["sys_env.id"] = env
+		}
+		if GetSysInfoParam.Ip != "none" {
+			temp["sys_ip.ipaddr"] = GetSysInfoParam.Ip
+		}
+		if GetSysInfoParam.NameId != "none" {
+			temp["sys_name.id"] = GetSysInfoParam.NameId
+		}
+		if result, err = stdao.SelectByQuery(GetSysInfoParam.PS.Page, GetSysInfoParam.PS.Offset, temp); err != nil {
+			return result, err
+		}
+	}
+
+	return result, nil
+
+}
+
+func (sv *SysInfo) AddInfo(AddInfoParam *param.SysInfoAddParam) ([]byte, error) {
+	var result []byte
+	var resultid int64
+	var err error
+	AddSysIp := &model.Sys_ip{
+		Ipaddr:      AddInfoParam.Ip,
+		Sys_env_id:  AddInfoParam.Env,
+		Sys_name_id: AddInfoParam.Name,
+	}
+
+	stdao := dao.SysInfoDao{tool.DbEngine}
+	if resultid, err = stdao.AddInfoIP(AddSysIp); err != nil {
+		return result, err
+	}
+	fmt.Println("-------------")
+	fmt.Println(resultid)
+	if result, err = stdao.SelectById(resultid); err != nil {
+		return result, err
+	}
+	fmt.Println("==============")
+	fmt.Println(string(result))
+	return result, nil
+}

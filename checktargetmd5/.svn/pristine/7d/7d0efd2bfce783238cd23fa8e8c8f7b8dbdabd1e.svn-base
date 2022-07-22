@@ -1,0 +1,95 @@
+package controller
+
+import (
+	"allinone/param"
+	"allinone/service"
+	"allinone/tool"
+
+	// "fmt"
+
+	"github.com/gin-gonic/gin"
+)
+
+type FileInfoController struct {
+}
+
+func (fileinfo *FileInfoController) Router(engine *gin.Engine) {
+	engine.GET("/fileinfo", fileinfo.GetFile)
+	engine.POST("/fileinfo", fileinfo.AddFile)
+	engine.PUT("/fileinfo", fileinfo.UpdateFile)
+	engine.DELETE("/fileinfo", fileinfo.DeleteFile)
+
+}
+
+func (fileinfo *FileInfoController) GetFile(context *gin.Context) {
+	var respose = tool.SuccessListStruct{}
+	var ts = service.FileInfo{}
+	var GetFileInfoParam param.FileInfoGetParam
+	GetFileInfoParam.SysNameId = context.DefaultQuery("sysnameid", "none")
+	GetFileInfoParam.Status = context.DefaultQuery("status", "none")
+	GetFileInfoParam.PS = tool.NewPageOffset()
+	GetFileInfoParam.PS.Convert(context.DefaultQuery("page", "none"), context.DefaultQuery("offset", "none"))
+
+	result, err := ts.GetFile(&GetFileInfoParam)
+	if err != nil {
+		tool.Failed(context, err.Error())
+		return
+	}
+
+	respose.SuccessList(context, result)
+
+}
+
+func (sysname *FileInfoController) AddFile(context *gin.Context) {
+	var ts = service.FileInfo{1}
+	var AddFileInfoParam param.FileInfoParam
+	if err := context.ShouldBindJSON(&AddFileInfoParam); err != nil {
+		tool.Failed(context, err.Error())
+
+		return
+	}
+
+	result, err := ts.InsertUpdateDelete(&AddFileInfoParam)
+	if err != nil {
+		tool.Failed(context, err.Error())
+		return
+	}
+
+	tool.Success(context, result)
+}
+
+func (sysname *FileInfoController) UpdateFile(context *gin.Context) {
+	var ts = service.FileInfo{2}
+	var UpdateFileInfoParam param.FileInfoParam
+	if err := context.ShouldBindJSON(&UpdateFileInfoParam); err != nil {
+		tool.Failed(context, err.Error())
+
+		return
+	}
+
+	result, err := ts.InsertUpdateDelete(&UpdateFileInfoParam)
+	if err != nil {
+		tool.Failed(context, err.Error())
+		return
+	}
+
+	tool.Success(context, result)
+}
+
+func (sysname *FileInfoController) DeleteFile(context *gin.Context) {
+	var ts = service.FileInfo{3}
+	var DeleteFileInfoParam param.FileInfoParam
+	if err := context.ShouldBindJSON(&DeleteFileInfoParam); err != nil {
+		tool.Failed(context, err.Error())
+
+		return
+	}
+
+	result, err := ts.InsertUpdateDelete(&DeleteFileInfoParam)
+	if err != nil {
+		tool.Failed(context, err.Error())
+		return
+	}
+
+	tool.Success(context, result)
+}

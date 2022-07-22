@@ -1,0 +1,9 @@
+package model
+
+type File_info struct {
+	Id                int64  `xorm:"pk autoincr notnull" json:"id" `
+	Filepath          string `xorm:"varchar(255)" json:"filepath" `
+	Filename          string `xorm:"varchar(255)" json:"filename" `
+	Filere            string `xorm:"varchar(255)" json:"filere" `
+	Sys_userpasswd_id string `xorm:"varchar(255)" json:"sys_userpasswd_id" `
+}

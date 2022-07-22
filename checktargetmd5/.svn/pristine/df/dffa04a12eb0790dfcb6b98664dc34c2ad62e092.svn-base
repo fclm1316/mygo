@@ -1,0 +1,14 @@
+package main
+
+import (
+	"allinone/tool"
+	"log"
+)
+
+func main() {
+	cfg, err := tool.ParseConfig()
+	if err != nil {
+		log.Fatalf("解析失败 ", err)
+	}
+	log.Println(cfg)
+}

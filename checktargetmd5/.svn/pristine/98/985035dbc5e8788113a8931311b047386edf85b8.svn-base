@@ -1,0 +1,84 @@
+package service
+
+import (
+	"allinone/dao"
+	"allinone/model"
+	"allinone/param"
+
+	// "allinone/po"
+	"allinone/tool"
+	// "fmt"
+	"strconv"
+)
+
+type FileInfo struct {
+	IUD uint8
+}
+
+func (sn *FileInfo) GetFile(GetFileInfoParam *param.FileInfoGetParam) ([]byte, error) {
+
+	var result []byte
+	var err error
+	var id int
+	stdao := dao.FileInfoDao{0, tool.DbEngine}
+
+	if GetFileInfoParam.SysNameId == "none" && GetFileInfoParam.Status == "none" {
+		if result, err = stdao.SelectAll(GetFileInfoParam.PS.Page, GetFileInfoParam.PS.Offset); err != nil {
+			return result, err
+		}
+
+	} else {
+		var temp = make(map[string]interface{})
+		if GetFileInfoParam.SysNameId != "none" {
+			id, err = strconv.Atoi(GetFileInfoParam.SysNameId)
+			if err != nil {
+				return result, err
+			}
+			temp["sys_name_id"] = id
+		}
+
+		if GetFileInfoParam.Status != "none" {
+			id, err = strconv.Atoi(GetFileInfoParam.Status)
+			if err != nil {
+				return result, err
+			}
+			temp["status"] = id
+		}
+
+		if result, err = stdao.SelectByQuery(GetFileInfoParam.PS.Page, GetFileInfoParam.PS.Offset, temp); err != nil {
+			return result, err
+		}
+	}
+
+	return result, nil
+
+}
+
+func (sn *FileInfo) InsertUpdateDelete(FromFileInfoParam *param.FileInfoParam) (int64, error) {
+	var resultid int64
+	var err error
+	FromFileInfo := &model.File_info{
+		Id:                FromFileInfoParam.Id,
+		Filepath:          FromFileInfoParam.Filepath,
+		Filename:          FromFileInfoParam.Filename,
+		Retype:            FromFileInfoParam.Retype,
+		Sys_ip_id:         FromFileInfoParam.Sys_ip_id,
+		Sys_userpasswd_id: FromFileInfoParam.Sys_userpasswd_id,
+		Status:            FromFileInfoParam.Status,
+	}
+	stdao := dao.FileInfoDao{0, tool.DbEngine}
+	if sn.IUD == 1 {
+		stdao.IUD = 1
+	}
+	if sn.IUD == 2 {
+		stdao.IUD = 2
+	}
+	if sn.IUD == 3 {
+		stdao.IUD = 3
+	}
+	if resultid, err = stdao.InsertUpdateDelete(FromFileInfo); err != nil {
+		return resultid, err
+	}
+	return resultid, nil
+
+}

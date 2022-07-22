@@ -1,0 +1,35 @@
+package main
+
+import (
+	"allinone/controller"
+	"allinone/tool"
+	"log"
+
+	"github.com/gin-gonic/gin"
+)
+
+func main() {
+	cfg, err := tool.ParseConfig()
+	if err != nil {
+		log.Fatalf("解析失败 ", err)
+	}
+	// log.Println(cfg)
+	_, err = tool.OrmEngine(cfg)
+	if err != nil {
+		log.Fatalln(err)
+		return
+	}
+	gin.SetMode(cfg.AppInfo.AppMode)
+	app := gin.Default()
+
+	registerRouter(app)
+
+	app.Run(cfg.AppInfo.AppHost + ":" + cfg.AppInfo.AppPort)
+}
+
+// 注册路由
+func registerRouter(router *gin.Engine) {
+	new(controller.HelloController).Router(router)
+	new(controller.SysInfoController).Router(router)
+
+}

@@ -1,0 +1,135 @@
+/*
+Navicat MySQL Data Transfer
+
+Source Server         : 203.3.230.50
+Source Server Version : 50720
+Source Host           : 203.3.230.50:3306
+Source Database       : allinone
+
+Target Server Type    : MYSQL
+Target Server Version : 50720
+File Encoding         : 65001
+
+Date: 2022-07-08 15:22:50
+*/
+
+SET FOREIGN_KEY_CHECKS=0;
+
+-- ----------------------------
+-- Table structure for file_info
+-- ----------------------------
+DROP TABLE IF EXISTS `file_info`;
+CREATE TABLE `file_info` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `sys_batch_id` int(11) DEFAULT NULL,
+  `file_list_id` int(11) DEFAULT NULL,
+  `filesize` int(11) DEFAULT NULL,
+  `filemodtime` int(11) DEFAULT NULL,
+  `status` int(1) DEFAULT NULL,
+  `statusmsg` varchar(255) DEFAULT NULL,
+  `filename` varchar(255) DEFAULT NULL,
+  `filemd5` varchar(255) DEFAULT NULL,
+  `ipaddr` varchar(255) DEFAULT NULL,
+  `user` varchar(255) DEFAULT NULL,
+  `creat_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `index_id` (`id`),
+  KEY `index_ipaddr` (`ipaddr`),
+  KEY `index_create` (`creat_at`)
+) ENGINE=InnoDB AUTO_INCREMENT=62 DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------
+-- Table structure for file_list
+-- ----------------------------
+DROP TABLE IF EXISTS `file_list`;
+CREATE TABLE `file_list` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `retype` int(1) DEFAULT NULL,
+  `status` int(1) DEFAULT NULL,
+  `sys_ip_id` int(11) DEFAULT NULL,
+  `sys_userpasswd_id` int(11) DEFAULT NULL,
+  `filepath` varchar(255) DEFAULT NULL,
+  `filename` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `index_id` (`id`),
+  KEY `index_unit` (`sys_ip_id`,`sys_userpasswd_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------
+-- Table structure for file_result
+-- ----------------------------
+DROP TABLE IF EXISTS `file_result`;
+CREATE TABLE `file_result` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `sys_batch_id_a` int(11) DEFAULT NULL,
+  `sys_batch_id_b` int(11) DEFAULT NULL,
+  `result_uuid` varchar(255) DEFAULT NULL,
+  `filename` varchar(255) DEFAULT NULL,
+  `ipaddr` varchar(255) DEFAULT NULL,
+  `filemd5_a` varchar(255) DEFAULT NULL,
+  `filemd5_b` varchar(255) DEFAULT NULL,
+  `creat_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `index_id` (`id`),
+  KEY `index_result_id` (`result_uuid`)
+) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------
+-- Table structure for sys_batch
+-- ----------------------------
+DROP TABLE IF EXISTS `sys_batch`;
+CREATE TABLE `sys_batch` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `creat_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------
+-- Table structure for sys_env
+-- ----------------------------
+DROP TABLE IF EXISTS `sys_env`;
+CREATE TABLE `sys_env` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `envname` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `index_id` (`id`,`envname`) USING BTREE
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------
+-- Table structure for sys_ip
+-- ----------------------------
+DROP TABLE IF EXISTS `sys_ip`;
+CREATE TABLE `sys_ip` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `ipaddr` varchar(255) DEFAULT NULL,
+  `sys_env_id` int(11) DEFAULT NULL,
+  `sys_name_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `index_ipaddr` (`id`,`ipaddr`) USING BTREE,
+  KEY `index_id` (`id`,`ipaddr`,`sys_name_id`,`sys_env_id`) USING BTREE
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------
+-- Table structure for sys_name
+-- ----------------------------
+DROP TABLE IF EXISTS `sys_name`;
+CREATE TABLE `sys_name` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `index_id` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4;
+
+-- ----------------------------
+-- Table structure for sys_userpasswd
+-- ----------------------------
+DROP TABLE IF EXISTS `sys_userpasswd`;
+CREATE TABLE `sys_userpasswd` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user` varchar(255) DEFAULT NULL,
+  `passwd` varchar(255) DEFAULT NULL,
+  `sys_ip_id` int(11) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `index_id` (`id`) USING BTREE,
+  KEY `index_u_p` (`user`,`passwd`,`sys_ip_id`) USING BTREE
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;

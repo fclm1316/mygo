@@ -1,3 +1,23 @@
+checktargetmd5
+	
+	背景：需要知道远程机器文件(jar文件)是否更新过。
+	方案：1 通过ssh远程库连接远程机器算文件md5，文件创建时间大小，
+	     保存在数据库中，并记录时间批次号
+		 2 通过批次号对文件进行比对。注意文件的增加删除
+	     3 使用rustfull 风格，get post delete put对接口增删改查。
+		   
+	接口：sysinfo 系统信息相关接口，ip地址所属环境，名称
+	     sysenv  系统环境信息接口，验证测试压测生产全链路
+		 sysname 系统名称接口
+		 filelist 远程机器文件路径接口，可精准文件名也可模糊匹配
+		 fileinfo 远程文件信息接口
+		 sysuserpasswd 远程机器的用户名密码接口
+		 sysbatch  批次接口
+		 fileresult 比对结果接口
+		
+	
+	
+	
 getnetworksource
     
     在chaosblade混沌工程中,需要对架构感知,系统调用之间的关系

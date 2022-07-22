@@ -1,0 +1,34 @@
+package controller
+
+import (
+	"allinone/param"
+	"allinone/service"
+	"allinone/tool"
+
+	"github.com/gin-gonic/gin"
+)
+
+type FileInfoController struct {
+}
+
+func (FileInfo *FileInfoController) Router(engine *gin.Engine) {
+	engine.POST("/fileinfo", FileInfo.AddFileInfo)
+
+}
+func (sysname *FileInfoController) AddFileInfo(context *gin.Context) {
+	ts := service.FileInfo{}
+	var FileInfoParam param.FileInfoParam
+	if err := context.ShouldBindJSON(&FileInfoParam); err != nil {
+		tool.Failed(context, err.Error())
+
+		return
+	}
+
+	result, err := ts.GetFileMd5()
+	if err != nil {
+		tool.Failed(context, err.Error())
+		return
+	}
+
+	tool.Success(context, result)
+}
