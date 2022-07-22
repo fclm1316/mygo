@@ -1,8 +1,0 @@
-package model
-
-type Sys_userpasswd struct {
-	Id        int64  `xorm:"pk autoincr notnull" json:"id" `
-	Username  string `xorm:"varchar(255)" json:"name" `
-	Passwd    string `xorm:"varchar(255)" json:"passwd" `
-	Sys_ip_id string `xorm:"varchar(255)" json:"sys_ip_id" `
-}

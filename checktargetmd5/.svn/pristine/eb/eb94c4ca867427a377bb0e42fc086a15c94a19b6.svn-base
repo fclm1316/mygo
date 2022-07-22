@@ -1,7 +1,0 @@
-package param
-
-// "allinone/tool"
-
-type FileInfoParam struct {
-	Id int64 `json:"id"`
-}
