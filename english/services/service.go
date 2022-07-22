@@ -68,6 +68,7 @@ func SelectAllWords() {
 			continue
 		case "p", "P":
 			go models.CreateUnKnowWords(words[i].Id)
+			go models.AddCount(words[i])
 		case "q", "Q":
 			StartApp()
 
@@ -153,6 +154,7 @@ func SelectGetWords(number int, querynumber int) {
 			continue
 		case "p", "P":
 			go models.CreateUnKnowWords(words[i].Id)
+			go models.AddCount(words[i])
 		case "q", "Q":
 			StartApp()
 

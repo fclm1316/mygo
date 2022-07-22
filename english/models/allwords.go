@@ -1,8 +1,11 @@
 package models
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
+
+	"gorm.io/gorm"
 )
 
 type Englishwords struct {
@@ -11,12 +14,13 @@ type Englishwords struct {
 	Chapter int    `json:"chapter"`
 	Unit    int    `json:"unit"`
 	TSL     string `json:"tsl"`
+	Count   int    `json:count`
 }
 
 // 数据库中获得所有
 func GetAllWords() ([]*Englishwords, error) {
 	var allwords []*Englishwords
-	result := db.Find(&allwords)
+	result := db.Find(&allwords).Where("status = 1")
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -26,7 +30,7 @@ func GetAllWords() ([]*Englishwords, error) {
 // 通过章节获取
 func GetWordsByChapter(chapter int) ([]*Englishwords, error) {
 	var allwords []*Englishwords
-	result := db.Where("chapter = ?", chapter).Find(&allwords)
+	result := db.Where("chapter = ?", chapter).Where("status = 1 ").Find(&allwords)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -36,7 +40,7 @@ func GetWordsByChapter(chapter int) ([]*Englishwords, error) {
 // 通过综合查询获取
 func GetWords(inquery map[string]interface{}) ([]*Englishwords, error) {
 	var patternwords []*Englishwords
-	result := db.Where(inquery).Find(&patternwords)
+	result := db.Where(inquery).Where("status = 1").Find(&patternwords)
 	if result.Error != nil {
 		return nil, result.Error
 	}
@@ -54,4 +58,11 @@ func Randresult(words []*Englishwords) []*Englishwords {
 		words[i], words[num] = words[num], words[i]
 	}
 	return words
+}
+
+func AddCount(word *Englishwords) {
+	result := db.Model(&word).Where("id = ?", word.Id).Update("count", gorm.Expr("count+ ?", 1))
+	if result.Error != nil {
+		fmt.Println(result.Error)
+	}
 }
